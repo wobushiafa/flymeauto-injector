@@ -1,0 +1,25 @@
+<Project>
+  <!-- Imported using CustomAfterMicrosoftCommonTargets; configure the standard
+       NativeAOT linker target rather than replacing or bypassing it. -->
+  <Target Name="ConfigureLocalNativeToolchain" BeforeTargets="SetupOSSpecificProps"
+          Condition="'$(PublishAot)' == 'true' and '$(RuntimeIdentifier)' == 'win-x64'">
+    <PropertyGroup>
+      <LocalToolchainRoot>$(MSBuildThisFileDirectory)packages\</LocalToolchainRoot>
+      <LocalMsvcBin>$(LocalToolchainRoot)msvc-tools-14.44.35229\Contents\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\</LocalMsvcBin>
+      <LocalMsvcLib>$(LocalToolchainRoot)msvc-crt-14.44.35226\Contents\VC\Tools\MSVC\14.44.35207\lib\x64\</LocalMsvcLib>
+      <LocalWindowsSdkLib>$(LocalToolchainRoot)windows-sdk-x64-10.0.26100.3916\c\</LocalWindowsSdkLib>
+      <IlcUseEnvironmentalTools>true</IlcUseEnvironmentalTools>
+      <CppLinker>$(LocalMsvcBin)link.exe</CppLinker>
+      <CppLibCreator>$(LocalMsvcBin)lib.exe</CppLibCreator>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(CppLinker)')" Text="Local MSVC linker missing; run toolchain/Bootstrap.ps1." />
+    <Error Condition="!Exists('$(LocalMsvcLib)libcmt.lib')" Text="Local MSVC CRT libraries missing; run toolchain/Bootstrap.ps1." />
+    <Error Condition="!Exists('$(LocalWindowsSdkLib)um\x64\kernel32.lib')" Text="Local Windows SDK libraries missing; run toolchain/Bootstrap.ps1." />
+    <ItemGroup>
+      <AdditionalNativeLibraryDirectories Include="$(LocalMsvcLib)" />
+      <AdditionalNativeLibraryDirectories Include="$(LocalToolchainRoot)msvc-crt-store-14.44.35226\Contents\VC\Tools\MSVC\14.44.35207\lib\x64" />
+      <AdditionalNativeLibraryDirectories Include="$(LocalWindowsSdkLib)um\x64" />
+      <AdditionalNativeLibraryDirectories Include="$(LocalWindowsSdkLib)ucrt\x64" />
+    </ItemGroup>
+  </Target>
+</Project>

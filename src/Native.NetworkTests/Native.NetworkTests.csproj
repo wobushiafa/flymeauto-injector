@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <PropertyGroup Condition="'$(DownloadIsolated)' == 'true'"><DefineConstants>$(DefineConstants);DOWNLOAD_ISOLATED</DefineConstants></PropertyGroup>
+  <ItemGroup Condition="'$(DownloadIsolated)' != 'true'"><ProjectReference Include="../Native.Core/Native.Core.csproj" /></ItemGroup>
+  <ItemGroup Condition="'$(DownloadIsolated)' == 'true'"><Compile Include="../Native.Core/Network/Download*.cs" Link="Network/%(Filename)%(Extension)" /></ItemGroup>
+</Project>

@@ -1,0 +1,81 @@
+name: Windows build and release
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Prepare verified Windows driver
+        run: ./scripts/Prepare-Drivers.ps1
+      - name: Validate release tag
+        run: |
+          $version = ([xml](Get-Content src/Native.Desktop/Native.Desktop.csproj -Raw)).Project.PropertyGroup.Version
+          if ('${{ github.ref_type }}' -eq 'tag' -and '${{ github.ref_name }}' -ne "v$version") {
+            throw 'Tag must match the project version, for example v1.1.0.'
+          }
+      - name: Test TCP isolation, DNS and HTTP TLS
+        working-directory: src
+        run: |
+          dotnet run --project Native.RedirectTests/Native.RedirectTests.csproj
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet run --file Native.DnsTests/Program.cs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet run --project Native.NetworkTests/Native.NetworkTests.csproj
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Render desktop and test GUI self-check
+        working-directory: src
+        run: |
+          dotnet build Native.Preview/Native.Preview.csproj -c Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet Native.Preview/bin/Release/net10.0/win-x64/Native.Preview.dll Native.Preview/previews-ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish Windows x64 NativeAOT package
+        run: ./scripts/Publish-Windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flymeauto-injector-win-x64
+          path: |
+            artifacts/flymeauto-injector-*-win-x64.zip
+            artifacts/flymeauto-injector-*-win-x64.zip.sha256
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flymeauto-injector-win-x64
+          path: release
+      - name: Create GitHub release with Windows downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          gh release create "$RELEASE_TAG" release/*.zip release/*.sha256 \
+            --verify-tag --title "flymeauto-injector $RELEASE_TAG" --generate-notes

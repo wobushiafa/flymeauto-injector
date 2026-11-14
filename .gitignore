@@ -1,0 +1,39 @@
+# .NET / IDE
+**/bin/
+**/obj/
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+TestResults/
+
+# Reproducible build outputs and downloaded tools
+artifacts/
+src/artifacts/
+src/toolchain/downloads/
+src/toolchain/packages/
+src/toolchain/evidence/
+src/drivers/*.dll
+src/drivers/*.sys
+
+# Local diagnostics, captures, APKs and private signing material
+capture/
+*.log
+*.etl
+*.pcap
+*.pcapng
+*.pcap0
+*.apk
+*.pfx
+*.p12
+*.pem
+*.key
+*.zip
+src/Native.Preview/previews*/
+.omo/
+.local-archive/
+.codex/
+.agents/
+Thumbs.db
+Desktop.ini
